@@ -1,0 +1,64 @@
+# =========================
+# Entornos virtuales
+# =========================
+.venv/
+venv/
+env/
+ENV/
+
+# =========================
+# Caché de Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Archivos de herramientas
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Archivos temporales
+# =========================
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+
+# =========================
+# Jupyter Notebook
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Variables de entorno / secretos
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Distribución / empaquetado
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Cobertura y testing
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# =========================
+# Sistema operativo
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
