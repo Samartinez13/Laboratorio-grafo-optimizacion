@@ -47,7 +47,7 @@ def avisarSiHayLazos(n, matriz):
     if lazos:
         print(f"Aviso: se detectaron lazos (auto-conexiones) en: {', '.join(lazos)}")
 
-def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso):#resaltar camino corto 
+def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso, caminoResaltar=None):
     print("\nGenerando representación gráfica... (se abrirá una ventana con el dibujo)")
 
     grafo = nx.DiGraph() if esDirigido else nx.Graph()
@@ -67,7 +67,7 @@ def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso):#resaltar camin
 
     posiciones = nx.spring_layout(grafo, seed=42)
     plt.figure(figsize=(7, 6))
-    # El parámetro "arrowsize" solo aplica cuando el grafo es dirigido
+
     argumentosDibujo = {
         "with_labels": True,
         "node_color": "skyblue",
@@ -85,6 +85,24 @@ def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso):#resaltar camin
         etiquetasPeso = nx.get_edge_attributes(grafo, "weight")
         nx.draw_networkx_edge_labels(grafo, posiciones, edge_labels=etiquetasPeso)
 
+    # Si nos pasaron un camino (lista de índices, ej: [0, 2, 1]),
+    # lo dibujamos encima del grafo normal, en otro color
+    if caminoResaltar:
+        nodosCamino = [f"v{indice+1}" for indice in caminoResaltar]
+        aristasCamino = [
+            (nodosCamino[i], nodosCamino[i + 1])
+            for i in range(len(nodosCamino) - 1)
+        ]
+
+        nx.draw_networkx_nodes(
+            grafo, posiciones, nodelist=nodosCamino,
+            node_color="orange", node_size=1500
+        )
+        nx.draw_networkx_edges(
+            grafo, posiciones, edgelist=aristasCamino,
+            edge_color="red", width=3
+        )
+
     plt.title("Representación Gráfica del Grafo")
     plt.show()
 
@@ -96,19 +114,33 @@ def obtenerNodosAdyacentes(nodo, n, matriz, esDirigido):
         return adyacentesSalida, adyacentesEntrada
 
     return adyacentesSalida, None
-
-def encontrarCamino(origen, destino, n, matriz):#Bellman-Ford
-    
+def encontrarCamino(origen, destino, n, matriz):  # Bellman-Ford
     costo = [float('inf')] * n
-    origen
+    costo[origen] = 0
+    predecesor = [-1] * n
 
-    for i in range(n-1):
-        for j in range(n-1):
-            costo=matrizAdyacencia[i][j]
-           
+    for _ in range(n - 1):          # cuántas rondas completas repito
+        for i in range(n):          # nodo origen de la arista (TODOS)
+            for j in range(n):      # nodo destino de la arista (TODOS)
+                if matriz[i][j] != 0:
+                    pesoArista = matriz[i][j]
+                    if costo[i] != float('inf') and (costo[i] + pesoArista) < costo[j]:
+                        costo[j] = costo[i] + pesoArista
+                        predecesor[j] = i
+
+    if costo[destino] == float('inf'):
+        return None
+
+    camino = []
+    actual = destino
+    while True:
+        camino.append(actual)
+        if actual == origen:
+            break
+        actual = predecesor[actual]
+    camino.reverse()
+    return camino
             
-        
-
 def detectarCicloDirigido(n, matriz):
     colores = [0] * n  # 0 = blanco, 1 = gris (en proceso), 2 = negro (terminado)
     padre = [-1] * n
@@ -332,7 +364,6 @@ def main():
     avisarSiHayLazos(n, matrizAdyacencia)
 
     mostrarRepresentacionMatematica(n, matrizAdyacencia, esDirigido, conPeso)
-    encontrarCamino(n,matrizAdyacencia)
     mostrarRepresentacionGrafica(n, matrizAdyacencia, esDirigido, conPeso)
     menuConceptos(n, matrizAdyacencia, esDirigido)
 

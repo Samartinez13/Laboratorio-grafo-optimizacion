@@ -3,7 +3,7 @@ import contextlib
 import tkinter as tk
 from tkinter import messagebox, simpledialog, scrolledtext
 
-from mainGrafo import (
+from mainGrafoPart2 import (
     mostrarRepresentacionMatematica,
     validarMatrizSimetrica,
     avisarSiHayLazos,
@@ -187,6 +187,13 @@ class AppGrafo:
         if camino:
             textoCamino = " -> ".join([f"v{nodoIndice+1}" for nodoIndice in camino])
             self.mostrarEnArea(f"\nCamino encontrado: {textoCamino}\n")
+
+            # Preguntamos si quiere ver el camino resaltado en la gráfica
+            if messagebox.askyesno("Ver gráfica", "¿Deseas ver el camino resaltado en el grafo?"):
+                mostrarRepresentacionGrafica(
+                    self.n, self.matrizActual, self.esDirigido.get(), self.conPeso.get(),
+                    caminoResaltar=camino
+                )
         else:
             self.mostrarEnArea(f"\nNo existe un camino entre v{origen} y v{destino}.\n")
 
