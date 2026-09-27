@@ -127,6 +127,14 @@ def encontrarCamino(origen, destino, n, matriz):  # Bellman-Ford
                     if costo[i] != float('inf') and (costo[i] + pesoArista) < costo[j]:
                         costo[j] = costo[i] + pesoArista
                         predecesor[j] = i
+    for i in range(n):
+        for j in range(n):
+            if matriz[i][j] != 0:
+                pesoArista = matriz[i][j]
+                if costo[i] != float('inf') and (costo[i] + pesoArista) < costo[j]:
+                    print("Aviso: se detectó un ciclo de peso negativo. "
+                          "El camino más corto no está definido.")
+                    return None
 
     if costo[destino] == float('inf'):
         return None
@@ -322,10 +330,6 @@ def main():
                     if conPeso:
                         try:
                             numero = float(x)
-                            if numero < 0:
-                                print(f"Error: '{x}' no puede ser negativo.")
-                                filaValida = False
-                                break
                             filaProcesada.append(numero)
                         except ValueError:
                             print(f"Error: '{x}' no es un número válido.")
