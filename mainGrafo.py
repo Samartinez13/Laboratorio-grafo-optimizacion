@@ -31,18 +31,11 @@ def mostrarRepresentacionMatematica(n, matriz, esDirigido, conPeso):
     print("G = (V, E)")
 
 def validarMatrizSimetrica(n, matriz):
-    """
-    En un grafo NO dirigido, la matriz de adyacencia debe ser
-    simétrica: matriz[i][j] debe ser igual a matriz[j][i].
-    Devuelve (True, None) si es válida, o (False, (i, j)) si
-    encuentra una inconsistencia.
-    """
     for i in range(n):
         for j in range(n):
             if matriz[i][j] != matriz[j][i]:
                 return False, (i, j)
     return True, None
-
 
 def avisarSiHayLazos(n, matriz):
     lazos = [f"v{i+1}" for i in range(n) if matriz[i][i] != 0]
@@ -69,9 +62,7 @@ def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso):
 
     posiciones = nx.spring_layout(grafo, seed=42)
     plt.figure(figsize=(7, 6))
-
-    # El parámetro "arrowsize" solo aplica cuando el grafo es dirigido,
-    # por eso se agrega únicamente en ese caso (evita un warning de networkx).
+    # El parámetro "arrowsize" solo aplica cuando el grafo es dirigido
     argumentosDibujo = {
         "with_labels": True,
         "node_color": "skyblue",
@@ -116,10 +107,8 @@ def encontrarCamino(origen, destino, n, matriz):
                 visitados[vecino] = True
                 padres[vecino] = actual
                 cola.append(vecino)
-
     if not visitados[destino]:
         return None
-
     camino = []
     nodo = destino
     while nodo != -1:
@@ -153,15 +142,12 @@ def detectarCicloDirigido(n, matriz):
                         return resultado
         colores[u] = 2
         return None
-
     for nodoInicio in range(n):
         if colores[nodoInicio] == 0:
             resultado = dfs(nodoInicio)
             if resultado:
                 return resultado
     return None
-
-
 def detectarCicloNoDirigido(n, matriz):
     visitados = [False] * n
     padres = [-1] * n
@@ -187,14 +173,12 @@ def detectarCicloNoDirigido(n, matriz):
                 if resultado:
                     return resultado
         return None
-
     for nodoInicio in range(n):
         if not visitados[nodoInicio]:
             resultado = dfs(nodoInicio, -1)
             if resultado:
                 return resultado
     return None
-
 def pedirNodoValido(n, tipo=""):
     while True:
         try:
@@ -208,8 +192,6 @@ def pedirNodoValido(n, tipo=""):
             print(f"Error: el nodo debe estar entre 1 y {n}.")
         except ValueError:
             print("Error: ingrese un número entero válido.")
-
-
 def menuConceptos(n, matriz, esDirigido):
     while True:
         print("\n=== EVIDENCIA DE CONCEPTOS ===")
@@ -268,7 +250,6 @@ def menuConceptos(n, matriz, esDirigido):
         else:
             print("Opción inválida, intente nuevamente.")
 
-
 def pedirRespuestaSiNo(mensaje):
     """
     Pide una respuesta al usuario y no continúa hasta que sea
@@ -300,8 +281,6 @@ def main():
         print("Separe los números con espacios (ejemplo: 0 1.5 5 0):")
     else:
         print("Al ser sin peso, ingrese solo 0, 1 o T (ejemplo: 0 1 T 0):")
-
-    # Se repite todo el ingreso de la matriz hasta que pase las validaciones
     while True:
         matrizAdyacencia = []
 
@@ -313,7 +292,6 @@ def main():
                 if len(valores) != n:
                     print(f"Error: Debe ingresar exactamente {n} valores. Ha ingresado {len(valores)}.")
                     continue
-
                 filaProcesada = []
                 filaValida = True
 
@@ -342,8 +320,6 @@ def main():
                 if filaValida:
                     matrizAdyacencia.append(filaProcesada)
                     break
-
-        # Validación: si el grafo NO es dirigido, la matriz debe ser simétrica
         if not esDirigido:
             esValida, posicion = validarMatrizSimetrica(n, matrizAdyacencia)
             if not esValida:
@@ -354,8 +330,7 @@ def main():
                 print("Vuelva a ingresar la matriz completa.\n")
                 continue  # Vuelve a pedir toda la matriz
 
-        break  # La matriz es válida, se continúa con el programa
-
+        break  
     print("\n=== DATOS CAPTURADOS CORRECTAMENTE ===")
     print(f"Tipo de grafo: {'Dirigido' if esDirigido else 'No dirigido'}")
     print(f"Pesos: {'Con peso' if conPeso else 'Sin peso'}")
@@ -368,7 +343,6 @@ def main():
     mostrarRepresentacionMatematica(n, matrizAdyacencia, esDirigido, conPeso)
     mostrarRepresentacionGrafica(n, matrizAdyacencia, esDirigido, conPeso)
     menuConceptos(n, matrizAdyacencia, esDirigido)
-
 
 if __name__ == "__main__":
     main()
