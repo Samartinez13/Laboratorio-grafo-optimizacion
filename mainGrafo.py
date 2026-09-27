@@ -92,7 +92,7 @@ def obtenerNodosAdyacentes(nodo, n, matriz, esDirigido):
 
     return adyacentesSalida, None
 
-def encontrarCamino(origen, destino, n, matriz):
+def encontrarCamino(origen, destino, n, matriz):#BFS
     visitados = [False] * n
     padres = [-1] * n
     cola = deque([origen])
