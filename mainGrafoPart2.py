@@ -114,14 +114,14 @@ def obtenerNodosAdyacentes(nodo, n, matriz, esDirigido):
         return adyacentesSalida, adyacentesEntrada
 
     return adyacentesSalida, None
-def encontrarCamino(origen, destino, n, matriz):  # Bellman-Ford
+def encontrarCaminoBellman(origen, destino, n, matriz):  # Bellman-Ford
     costo = [float('inf')] * n
     costo[origen] = 0
     predecesor = [-1] * n
 
-    for _ in range(n - 1):          # cuántas rondas completas repito
-        for i in range(n):          # nodo origen de la arista (TODOS)
-            for j in range(n):      # nodo destino de la arista (TODOS)
+    for _ in range(n - 1):          
+        for i in range(n):          
+            for j in range(n):      
                 if matriz[i][j] != 0:
                     pesoArista = matriz[i][j]
                     if costo[i] != float('inf') and (costo[i] + pesoArista) < costo[j]:
@@ -148,7 +148,38 @@ def encontrarCamino(origen, destino, n, matriz):  # Bellman-Ford
         actual = predecesor[actual]
     camino.reverse()
     return camino
-            
+
+def encontrarCaminoDijkstra(origen, destino, n, matriz):
+
+    distancia=[float('inf')] * n
+    distancia[origen]=0
+    nodoAnterior= [-1] * n
+    colaPrioridad= list(range(n))
+
+    while colaPrioridad:
+        nodoMenorDistancia=min(colaPrioridad, key=lambda v: distancia[v])
+        colaPrioridad.remove(nodoMenorDistancia)
+        if distancia[nodoMenorDistancia]==float("inf") or nodoMenorDistancia==destino:
+            break
+        for j in range(n):
+            if matriz[nodoMenorDistancia][j]!=0 and j in colaPrioridad:
+                nuevaDist=distancia[nodoMenorDistancia]+matriz[nodoMenorDistancia][j]
+                if nuevaDist<distancia[j]:
+                    distancia[j]=nuevaDist
+                    nodoAnterior[j]=nodoMenorDistancia
+
+    if distancia[destino] == float('inf'):
+        return None
+    camino=[]
+    actual=destino
+    while True:
+        camino.append(actual)
+        if actual==origen:
+            break
+        actual=nodoAnterior[actual]
+    camino.reverse()
+    return camino
+
 def detectarCicloDirigido(n, matriz):
     colores = [0] * n  # 0 = blanco, 1 = gris (en proceso), 2 = negro (terminado)
     padre = [-1] * n
@@ -223,6 +254,13 @@ def pedirNodoValido(n, tipo=""):
             print(f"Error: el nodo debe estar entre 1 y {n}.")
         except ValueError:
             print("Error: ingrese un número entero válido.")
+
+def tienePesosNegativos(n,matriz):
+    for i in range(n):
+        for j in range(n):
+            if matriz[i][j] < 0:
+                return True
+    return False
 def menuConceptos(n, matriz, esDirigido):
     while True:
         print("\n=== EVIDENCIA DE CONCEPTOS ===")
@@ -249,7 +287,15 @@ def menuConceptos(n, matriz, esDirigido):
         elif opcion == '2':
             origen = pedirNodoValido(n, "de origen")
             destino = pedirNodoValido(n, "de destino")
-            camino = encontrarCamino(origen, destino, n, matriz)
+            opn=input(f"Que algoritmo desea utilizar para resolver el camino\n(1)Bellman-Ford\n(2)Dijkstra\n")
+            if opn=='1':
+                camino = encontrarCaminoBellman(origen, destino, n, matriz)
+            else:
+                if tienePesosNegativos(n,matriz):
+                    print(f"Su matriz tiene pesos negativos, se resolvera con Bellman-Ford")
+                    camino=encontrarCaminoBellman(origen,destino,n,matriz)
+                else:
+                    camino=encontrarCaminoDijkstra(origen, destino, n, matriz)
 
             if camino:
                 caminoTexto = " -> ".join([f"v{nodo+1}" for nodo in camino])
@@ -282,10 +328,6 @@ def menuConceptos(n, matriz, esDirigido):
             print("Opción inválida, intente nuevamente.")
 
 def pedirRespuestaSiNo(mensaje):
-    """
-    Pide una respuesta al usuario y no continúa hasta que sea
-    's' (sí) o 'n' (no). Devuelve True si respondió 's'.
-    """
     while True:
         respuesta = input(mensaje).strip().lower()
         if respuesta in ['s', 'n']:

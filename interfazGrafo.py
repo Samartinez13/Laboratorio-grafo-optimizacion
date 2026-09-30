@@ -9,7 +9,9 @@ from mainGrafoPart2 import (
     avisarSiHayLazos,
     mostrarRepresentacionGrafica,
     obtenerNodosAdyacentes,
-    encontrarCamino,
+    encontrarCaminoBellman,
+    encontrarCaminoDijkstra,
+    tienePesosNegativos,
     detectarCicloDirigido,
     detectarCicloNoDirigido,
 )
@@ -25,6 +27,7 @@ class AppGrafo:
 
         self.esDirigido = tk.BooleanVar()
         self.conPeso = tk.BooleanVar()
+        self.algoritmo = tk.StringVar(value="dijkstra")
 
         self.crearInterfazInicial()
 
@@ -36,6 +39,11 @@ class AppGrafo:
             row=0, column=0, sticky="w")
         tk.Checkbutton(frameConfig, text="¿Grafo con peso?", variable=self.conPeso).grid(
             row=1, column=0, sticky="w")
+        tk.Label(frameConfig, text="Algoritmo de camino:").grid(row=0, column=2, padx=(20, 0), sticky="w")
+        tk.Radiobutton(frameConfig, text="Dijkstra", variable=self.algoritmo,
+                       value="dijkstra").grid(row=1, column=2, padx=(20, 0), sticky="w")
+        tk.Radiobutton(frameConfig, text="Bellman-Ford", variable=self.algoritmo,
+                       value="bellman").grid(row=2, column=2, padx=(20, 0), sticky="w")
 
         tk.Label(frameConfig, text="Número de nodos:").grid(row=2, column=0, sticky="w")
         self.entradaN = tk.Entry(frameConfig, width=5)
@@ -94,8 +102,6 @@ class AppGrafo:
                 try:
                     if self.conPeso.get():
                         valor = float(texto)
-                        if valor < 0:
-                            raise ValueError
                     else:
                         if texto.upper() not in ["0", "1", "T"]:
                             raise ValueError
@@ -183,7 +189,18 @@ class AppGrafo:
             messagebox.showerror("Error", "Nodos inválidos.")
             return
 
-        camino = encontrarCamino(origen - 1, destino - 1, self.n, self.matrizActual)
+        if self.algoritmo.get() == "bellman":
+            camino = encontrarCaminoBellman(origen - 1, destino - 1, self.n, self.matrizActual)
+        else:
+            if tienePesosNegativos(self.n, self.matrizActual):
+                messagebox.showinfo(
+                    "Aviso",
+                    "La matriz tiene pesos negativos, Dijkstra no es válido.\n"
+                    "Se resolverá con Bellman-Ford."
+                )
+                camino = encontrarCaminoBellman(origen - 1, destino - 1, self.n, self.matrizActual)
+            else:
+                camino = encontrarCaminoDijkstra(origen - 1, destino - 1, self.n, self.matrizActual)
         if camino:
             textoCamino = " -> ".join([f"v{nodoIndice+1}" for nodoIndice in camino])
             self.mostrarEnArea(f"\nCamino encontrado: {textoCamino}\n")
