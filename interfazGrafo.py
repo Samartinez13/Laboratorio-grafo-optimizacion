@@ -183,9 +183,14 @@ class AppGrafo:
             return
 
         origen = simpledialog.askinteger("Origen", f"Nodo de origen (1 a {self.n}):")
+        if origen is None:
+            return
+        self.ventana.update()
         destino = simpledialog.askinteger("Destino", f"Nodo de destino (1 a {self.n}):")
+        if destino is None:
+            return
 
-        if origen is None or destino is None or not (1 <= origen <= self.n) or not (1 <= destino <= self.n):
+        if not (1 <= origen <= self.n) or not (1 <= destino <= self.n):
             messagebox.showerror("Error", "Nodos inválidos.")
             return
 
