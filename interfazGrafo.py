@@ -11,11 +11,14 @@ from mainGrafoPart2 import (
     obtenerNodosAdyacentes,
     encontrarCaminoBellman,
     encontrarCaminoDijkstra,
+    encontrarCaminoDijkstraHeap,
+    calcularCostoCamino,
+    compararEficiencia,
+    convertirAPeso,
     tienePesosNegativos,
     detectarCicloDirigido,
     detectarCicloNoDirigido,
 )
-
 class AppGrafo:
     def __init__(self, ventana):
         self.ventana = ventana
@@ -42,8 +45,10 @@ class AppGrafo:
         tk.Label(frameConfig, text="Algoritmo de camino:").grid(row=0, column=2, padx=(20, 0), sticky="w")
         tk.Radiobutton(frameConfig, text="Dijkstra", variable=self.algoritmo,
                        value="dijkstra").grid(row=1, column=2, padx=(20, 0), sticky="w")
+        tk.Radiobutton(frameConfig, text="Dijkstra (heap)", variable=self.algoritmo,
+                       value="dijkstraHeap").grid(row=2, column=2, padx=(20, 0), sticky="w")
         tk.Radiobutton(frameConfig, text="Bellman-Ford", variable=self.algoritmo,
-                       value="bellman").grid(row=2, column=2, padx=(20, 0), sticky="w")
+                       value="bellman").grid(row=3, column=2, padx=(20, 0), sticky="w")
 
         tk.Label(frameConfig, text="Número de nodos:").grid(row=2, column=0, sticky="w")
         self.entradaN = tk.Entry(frameConfig, width=5)
@@ -67,6 +72,8 @@ class AppGrafo:
             row=0, column=3, padx=5)
         tk.Button(frameBotones, text="Detectar ciclo", command=self.detectarCicloGUI).grid(
             row=0, column=4, padx=5)
+        tk.Button(frameBotones, text="Comparar eficiencia", command=self.compararEficienciaGUI).grid(
+            row=0, column=5, padx=5)
 
         self.areaResultados = scrolledtext.ScrolledText(self.ventana, width=90, height=22)
         self.areaResultados.pack(padx=10, pady=10)
@@ -79,10 +86,8 @@ class AppGrafo:
         except ValueError:
             messagebox.showerror("Error", "Ingrese un número de nodos válido (mayor a 0).")
             return
-
         for widget in self.frameMatriz.winfo_children():
             widget.destroy()
-
         self.matrizEntradas = []
         for i in range(self.n):
             filaEntradas = []
@@ -101,7 +106,7 @@ class AppGrafo:
                 texto = self.matrizEntradas[i][j].get().strip()
                 try:
                     if self.conPeso.get():
-                        valor = float(texto)
+                        valor = convertirAPeso(texto)
                     else:
                         if texto.upper() not in ["0", "1", "T"]:
                             raise ValueError
@@ -122,7 +127,6 @@ class AppGrafo:
         except ValueError as error:
             messagebox.showerror("Error", str(error))
             return
-
         if not self.esDirigido.get():
             esValida, posicion = validarMatrizSimetrica(self.n, matriz)
             if not esValida:
@@ -136,7 +140,6 @@ class AppGrafo:
                 return
 
         self.matrizActual = matriz
-
         salidaCapturada = io.StringIO()
         with contextlib.redirect_stdout(salidaCapturada):
             avisarSiHayLazos(self.n, matriz)
@@ -148,23 +151,19 @@ class AppGrafo:
         if self.matrizActual is None:
             messagebox.showwarning("Aviso", "Primero procese el grafo.")
             return
-        # Esto abre la ventana de matplotlib, igual que en la versión de consola
         mostrarRepresentacionGrafica(self.n, self.matrizActual, self.esDirigido.get(), self.conPeso.get())
 
     def verAdyacentes(self):
         if self.matrizActual is None:
             messagebox.showwarning("Aviso", "Primero procese el grafo.")
             return
-
         nodo = simpledialog.askinteger("Nodo", f"Ingrese el nodo (1 a {self.n}):")
         if nodo is None or not (1 <= nodo <= self.n):
             messagebox.showerror("Error", "Nodo inválido.")
             return
-
         nodoIndice = nodo - 1
         adySalida, adyEntrada = obtenerNodosAdyacentes(
             nodoIndice, self.n, self.matrizActual, self.esDirigido.get())
-
         texto = f"\nNodos adyacentes de v{nodo}:\n"
         if self.esDirigido.get():
             textoSalida = ', '.join(adySalida) if adySalida else "Ninguno"
@@ -174,14 +173,12 @@ class AppGrafo:
         else:
             textoAdy = ', '.join(adySalida) if adySalida else "Ninguno"
             texto += f" - Nodos adyacentes: {textoAdy}\n"
-
         self.mostrarEnArea(texto)
 
     def buscarCaminoGUI(self):
         if self.matrizActual is None:
             messagebox.showwarning("Aviso", "Primero procese el grafo.")
             return
-
         origen = simpledialog.askinteger("Origen", f"Nodo de origen (1 a {self.n}):")
         if origen is None:
             return
@@ -189,11 +186,9 @@ class AppGrafo:
         destino = simpledialog.askinteger("Destino", f"Nodo de destino (1 a {self.n}):")
         if destino is None:
             return
-
         if not (1 <= origen <= self.n) or not (1 <= destino <= self.n):
             messagebox.showerror("Error", "Nodos inválidos.")
             return
-
         if self.algoritmo.get() == "bellman":
             camino = encontrarCaminoBellman(origen - 1, destino - 1, self.n, self.matrizActual)
         else:
@@ -204,11 +199,15 @@ class AppGrafo:
                     "Se resolverá con Bellman-Ford."
                 )
                 camino = encontrarCaminoBellman(origen - 1, destino - 1, self.n, self.matrizActual)
+            elif self.algoritmo.get() == "dijkstraHeap":
+                camino = encontrarCaminoDijkstraHeap(origen - 1, destino - 1, self.n, self.matrizActual)
             else:
                 camino = encontrarCaminoDijkstra(origen - 1, destino - 1, self.n, self.matrizActual)
         if camino:
             textoCamino = " -> ".join([f"v{nodoIndice+1}" for nodoIndice in camino])
-            self.mostrarEnArea(f"\nCamino encontrado: {textoCamino}\n")
+            costoTotal = calcularCostoCamino(camino, self.matrizActual)
+            self.mostrarEnArea(f"\nCamino encontrado: {textoCamino}")
+            self.mostrarEnArea(f"Costo total del camino: {costoTotal}\n")
 
             # Preguntamos si quiere ver el camino resaltado en la gráfica
             if messagebox.askyesno("Ver gráfica", "¿Deseas ver el camino resaltado en el grafo?"):
@@ -218,7 +217,6 @@ class AppGrafo:
                 )
         else:
             self.mostrarEnArea(f"\nNo existe un camino entre v{origen} y v{destino}.\n")
-
     def detectarCicloGUI(self):
         if self.matrizActual is None:
             messagebox.showwarning("Aviso", "Primero procese el grafo.")
@@ -235,10 +233,26 @@ class AppGrafo:
         else:
             self.mostrarEnArea("\nNo se encontró ningún ciclo en el grafo.\n")
 
+    def compararEficienciaGUI(self):
+        if self.matrizActual is None:
+            messagebox.showwarning("Aviso", "Primero procese el grafo.")
+            return
+        origen = simpledialog.askinteger("Origen", f"Nodo de origen (1 a {self.n}):")
+        if origen is None:
+            return
+        destino = simpledialog.askinteger("Destino", f"Nodo de destino (1 a {self.n}):")
+        if destino is None:
+            return
+        if not (1 <= origen <= self.n) or not (1 <= destino <= self.n):
+            messagebox.showerror("Error", "Nodos inválidos.")
+            return
+        salidaCapturada = io.StringIO()
+        with contextlib.redirect_stdout(salidaCapturada):
+            compararEficiencia(origen - 1, destino - 1, self.n, self.matrizActual)
+        self.mostrarEnArea(salidaCapturada.getvalue())
     def mostrarEnArea(self, texto):
         self.areaResultados.insert(tk.END, texto + "\n")
         self.areaResultados.see(tk.END)
-
 def main():
     ventana = tk.Tk()
     AppGrafo(ventana)

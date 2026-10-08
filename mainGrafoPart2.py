@@ -1,57 +1,47 @@
-from collections import deque
+import math
+import time
+import heapq
 import networkx as nx
 import matplotlib.pyplot as plt
 
-aristas=[]
 def mostrarRepresentacionMatematica(n, matriz, esDirigido, conPeso):
     print("\n=== REPRESENTACIÓN MATEMÁTICA DEL GRAFO ===")
-
     # Conjunto de Vértices
     V = [f"v{i+1}" for i in range(n)]
     print(f"V = {{ {', '.join(V)} }}")
-
     E = []
     for i in range(n):
         inicioJ = 0 if esDirigido else i
-
         for j in range(inicioJ, n):
             valor = matriz[i][j]
-            if valor != 0:  # Si es distinto de 0, hay conexión
+            if valor != 0:  
                 if conPeso:
                     if esDirigido:
                         E.append(f"(v{i+1}, v{j+1}, {valor})")
-                        aristas.append(({i+1},{j+1}, valor))
                     else:
                         E.append(f"{{v{i+1}, v{j+1}, {valor}}}")
-                        aristas.append(({i+1}, {j+1}, valor))
                 else:
                     if esDirigido:
                         E.append(f"(v{i+1}, v{j+1})")
-                        aristas.append(({i+1}, {j+1}))
                     else:
                         E.append(f"{{v{i+1}, v{j+1}}}")
-                        aristas.append(({i+1}, {j+1}))
 
     print(f"E = {{ {', '.join(E)} }}")
     print("G = (V, E)")
-
 def validarMatrizSimetrica(n, matriz):
     for i in range(n):
         for j in range(n):
             if matriz[i][j] != matriz[j][i]:
                 return False, (i, j)
     return True, None
-
 def avisarSiHayLazos(n, matriz):
     lazos = [f"v{i+1}" for i in range(n) if matriz[i][i] != 0]
     if lazos:
         print(f"Aviso: se detectaron lazos (auto-conexiones) en: {', '.join(lazos)}")
-
 def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso, caminoResaltar=None):
     print("\nGenerando representación gráfica... (se abrirá una ventana con el dibujo)")
 
     grafo = nx.DiGraph() if esDirigido else nx.Graph()
-
     for i in range(n):
         grafo.add_node(f"v{i+1}")
 
@@ -78,15 +68,10 @@ def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso, caminoResaltar=
     if esDirigido:
         argumentosDibujo["arrows"] = True
         argumentosDibujo["arrowsize"] = 20
-
     nx.draw(grafo, posiciones, **argumentosDibujo)
-
     if conPeso:
         etiquetasPeso = nx.get_edge_attributes(grafo, "weight")
         nx.draw_networkx_edge_labels(grafo, posiciones, edge_labels=etiquetasPeso)
-
-    # Si nos pasaron un camino (lista de índices, ej: [0, 2, 1]),
-    # lo dibujamos encima del grafo normal, en otro color
     if caminoResaltar:
         nodosCamino = [f"v{indice+1}" for indice in caminoResaltar]
         aristasCamino = [
@@ -102,7 +87,6 @@ def mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso, caminoResaltar=
             grafo, posiciones, edgelist=aristasCamino,
             edge_color="red", width=3
         )
-
     plt.title("Representación Gráfica del Grafo")
     plt.show()
 
@@ -112,13 +96,12 @@ def obtenerNodosAdyacentes(nodo, n, matriz, esDirigido):
     if esDirigido:
         adyacentesEntrada = [f"v{i+1}" for i in range(n) if matriz[i][nodo] != 0]
         return adyacentesSalida, adyacentesEntrada
-
     return adyacentesSalida, None
+
 def encontrarCaminoBellman(origen, destino, n, matriz):  # Bellman-Ford
     costo = [float('inf')] * n
     costo[origen] = 0
     predecesor = [-1] * n
-
     for _ in range(n - 1):          
         for i in range(n):          
             for j in range(n):      
@@ -138,7 +121,6 @@ def encontrarCaminoBellman(origen, destino, n, matriz):  # Bellman-Ford
 
     if costo[destino] == float('inf'):
         return None
-
     camino = []
     actual = destino
     while True:
@@ -180,8 +162,102 @@ def encontrarCaminoDijkstra(origen, destino, n, matriz):
     camino.reverse()
     return camino
 
+def construirListaAdyacencia(n, matriz):
+    listaAdyacencia = [[] for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if matriz[i][j] != 0:
+                listaAdyacencia[i].append((j, matriz[i][j]))
+    return listaAdyacencia
+
+def encontrarCaminoDijkstraHeap(origen, destino, n, matriz):
+    # Dijkstra con lista de adyacencia y cola de prioridad (heapq)
+    listaAdyacencia = construirListaAdyacencia(n, matriz)
+    distancia = [float('inf')] * n
+    distancia[origen] = 0
+    nodoAnterior = [-1] * n
+    colaPrioridad = [(0, origen)]
+
+    while colaPrioridad:
+        distanciaActual, nodoActual = heapq.heappop(colaPrioridad)
+        if distanciaActual > distancia[nodoActual]:
+            continue
+        if nodoActual == destino:
+            break
+        for vecino, peso in listaAdyacencia[nodoActual]:
+            nuevaDist = distanciaActual + peso
+            if nuevaDist < distancia[vecino]:
+                distancia[vecino] = nuevaDist
+                nodoAnterior[vecino] = nodoActual
+                heapq.heappush(colaPrioridad, (nuevaDist, vecino))
+
+    if distancia[destino] == float('inf'):
+        return None
+    camino = []
+    actual = destino
+    while True:
+        camino.append(actual)
+        if actual == origen:
+            break
+        actual = nodoAnterior[actual]
+    camino.reverse()
+    return camino
+
+def calcularCostoCamino(camino, matriz):
+    costoTotal = 0
+    for i in range(len(camino) - 1):
+        costoTotal += matriz[camino[i]][camino[i + 1]]
+    return costoTotal
+
+def mostrarResultadoCamino(camino, matriz):
+    caminoTexto = " -> ".join([f"v{nodo+1}" for nodo in camino])
+    costoTotal = calcularCostoCamino(camino, matriz)
+    print(f"\nCamino encontrado: {caminoTexto}")
+    print(f"Costo total del camino: {costoTotal}")
+
+def compararEficiencia(origen, destino, n, matriz, repeticiones=1000):
+    print(f"\n=== COMPARACIÓN DE EFICIENCIA ({repeticiones} repeticiones) ===")
+    algoritmos = [("Bellman-Ford (matriz)", encontrarCaminoBellman)]
+
+    if tienePesosNegativos(n, matriz):
+        print("Aviso: hay pesos negativos, Dijkstra no se puede aplicar.")
+    else:
+        algoritmos.append(("Dijkstra (lista y min)", encontrarCaminoDijkstra))
+        algoritmos.append(("Dijkstra (heap)", encontrarCaminoDijkstraHeap))
+
+    for nombre, funcion in algoritmos:
+        inicio = time.perf_counter()
+        for _ in range(repeticiones):
+            camino = funcion(origen, destino, n, matriz)
+        fin = time.perf_counter()
+        tiempoTotal = fin - inicio
+        tiempoPromedio = tiempoTotal / repeticiones * 1000
+        if camino:
+            costo = calcularCostoCamino(camino, matriz)
+        else:
+            costo = "sin camino"
+        print(f"{nombre}: {tiempoPromedio:.5f} ms por ejecución | costo = {costo}")
+
+    print("\nComplejidad teórica:")
+    print(" - Bellman-Ford con matriz: O(V^3)")
+    print(" - Dijkstra con lista y min(): O(V^2)")
+    print(" - Dijkstra con heap y lista de adyacencia: O((V + E) log V)")
+
+def convertirAPeso(texto):
+    numero = float(texto)
+    if math.isnan(numero) or math.isinf(numero):
+        raise ValueError
+    return numero
+
+def pedirAlgoritmo():
+    while True:
+        opn = input("Que algoritmo desea utilizar para resolver el camino\n(1)Bellman-Ford\n(2)Dijkstra\n").strip()
+        if opn in ['1', '2']:
+            return opn
+        print("Error: elija 1 o 2.")
+
 def detectarCicloDirigido(n, matriz):
-    colores = [0] * n  # 0 = blanco, 1 = gris (en proceso), 2 = negro (terminado)
+    colores = [0] * n  
     padre = [-1] * n
 
     def dfs(u):
@@ -189,7 +265,7 @@ def detectarCicloDirigido(n, matriz):
         for v in range(n):
             if matriz[u][v] != 0:
                 if colores[v] == 1:
-                    # Se encontró un ciclo: reconstruirlo desde u hasta v
+                    # Se encontró un ciclo
                     ciclo = [v]
                     actual = u
                     while actual != v:
@@ -261,15 +337,16 @@ def tienePesosNegativos(n,matriz):
             if matriz[i][j] < 0:
                 return True
     return False
-def menuConceptos(n, matriz, esDirigido):
+def menuConceptos(n, matriz, esDirigido, conPeso):
     while True:
         print("\n=== EVIDENCIA DE CONCEPTOS ===")
         print("1. Ver nodos adyacentes de un nodo")
         print("2. Buscar un camino entre dos nodos")
         print("3. Detectar un ciclo en el grafo")
-        print("4. Salir")
+        print("4. Comparar eficiencia de los algoritmos")
+        print("5. Salir")
         opcion = input("Elija una opción: ").strip()
-
+        
         if opcion == '1':
             nodo = pedirNodoValido(n)
             adySalida, adyEntrada = obtenerNodosAdyacentes(nodo, n, matriz, esDirigido)
@@ -287,28 +364,27 @@ def menuConceptos(n, matriz, esDirigido):
         elif opcion == '2':
             origen = pedirNodoValido(n, "de origen")
             destino = pedirNodoValido(n, "de destino")
-            opn=input(f"Que algoritmo desea utilizar para resolver el camino\n(1)Bellman-Ford\n(2)Dijkstra\n")
-            if opn=='1':
+            opn = pedirAlgoritmo()
+            if opn == '1':
                 camino = encontrarCaminoBellman(origen, destino, n, matriz)
             else:
-                if tienePesosNegativos(n,matriz):
-                    print(f"Su matriz tiene pesos negativos, se resolvera con Bellman-Ford")
-                    camino=encontrarCaminoBellman(origen,destino,n,matriz)
+                if tienePesosNegativos(n, matriz):
+                    print("Su matriz tiene pesos negativos, se resolvera con Bellman-Ford")
+                    camino = encontrarCaminoBellman(origen, destino, n, matriz)
                 else:
-                    camino=encontrarCaminoDijkstra(origen, destino, n, matriz)
+                    camino = encontrarCaminoDijkstra(origen, destino, n, matriz)
 
             if camino:
-                caminoTexto = " -> ".join([f"v{nodo+1}" for nodo in camino])
-                print(f"\nCamino encontrado: {caminoTexto}")
+                mostrarResultadoCamino(camino, matriz)
+                if pedirRespuestaSiNo("¿Desea ver el camino resaltado en el grafo? (s/n): "):
+                    mostrarRepresentacionGrafica(n, matriz, esDirigido, conPeso, caminoResaltar=camino)
             else:
                 print(f"\nNo existe un camino entre v{origen+1} y v{destino+1}.")
-
         elif opcion == '3':
             if esDirigido:
                 ciclo = detectarCicloDirigido(n, matriz)
             else:
                 ciclo = detectarCicloNoDirigido(n, matriz)
-
             if ciclo:
                 esLazo = len(ciclo) == 2 and ciclo[0] == ciclo[1]
                 if esLazo:
@@ -321,19 +397,22 @@ def menuConceptos(n, matriz, esDirigido):
                 print("\nNo se encontró ningún ciclo en el grafo.")
 
         elif opcion == '4':
+            origen = pedirNodoValido(n, "de origen")
+            destino = pedirNodoValido(n, "de destino")
+            compararEficiencia(origen, destino, n, matriz)
+
+        elif opcion == '5':
             print("Fin del programa. ¡Hasta luego!")
             break
 
         else:
             print("Opción inválida, intente nuevamente.")
-
 def pedirRespuestaSiNo(mensaje):
     while True:
         respuesta = input(mensaje).strip().lower()
         if respuesta in ['s', 'n']:
             return respuesta == 's'
         print("Error: responda solamente con 's' (sí) o 'n' (no).")
-
 def main():
     print("=== INGRESO DE DATOS DEL GRAFO ===")
 
@@ -348,7 +427,6 @@ def main():
             print("Error: El número de nodos debe ser mayor a 0.")
         except ValueError:
             print("Error: Por favor, ingrese un número entero válido.")
-
     print(f"\nIngrese la matriz de adyacencia ({n} filas de {n} valores).")
     if conPeso:
         print("Separe los números con espacios (ejemplo: 0 1.5 5 0):")
@@ -356,25 +434,22 @@ def main():
         print("Al ser sin peso, ingrese solo 0, 1 o T (ejemplo: 0 1 T 0):")
     while True:
         matrizAdyacencia = []
-
         for i in range(n):
             while True:
                 filaInput = input(f"Fila {i + 1}: ").strip()
                 valores = filaInput.split()
-
                 if len(valores) != n:
                     print(f"Error: Debe ingresar exactamente {n} valores. Ha ingresado {len(valores)}.")
                     continue
                 filaProcesada = []
                 filaValida = True
-
                 for x in valores:
                     if conPeso:
                         try:
-                            numero = float(x)
+                            numero = convertirAPeso(x)
                             filaProcesada.append(numero)
                         except ValueError:
-                            print(f"Error: '{x}' no es un número válido.")
+                            print(f"Error: '{x}' no es un número válido (no se permite nan ni inf).")
                             filaValida = False
                             break
                     else:
@@ -385,7 +460,6 @@ def main():
                             print(f"Error: '{x}' no es válido. Para grafos sin peso ingrese solo 0, 1 o T.")
                             filaValida = False
                             break
-
                 if filaValida:
                     matrizAdyacencia.append(filaProcesada)
                     break
@@ -406,12 +480,10 @@ def main():
     print("Matriz ingresada:")
     for fila in matrizAdyacencia:
         print(fila)
-
     avisarSiHayLazos(n, matrizAdyacencia)
-
     mostrarRepresentacionMatematica(n, matrizAdyacencia, esDirigido, conPeso)
     mostrarRepresentacionGrafica(n, matrizAdyacencia, esDirigido, conPeso)
-    menuConceptos(n, matrizAdyacencia, esDirigido)
+    menuConceptos(n, matrizAdyacencia, esDirigido, conPeso)
 
 if __name__ == "__main__":
     main()
